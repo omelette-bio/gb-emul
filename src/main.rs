@@ -6,41 +6,8 @@ use serde::{Serialize, Deserialize};
 mod rom_reader;
 use std::io::Read;
 use std::fmt::LowerHex;
-
-#[derive(Debug, Serialize, Deserialize)]
-struct Operand {
-    name: String,
-    #[serde(default)]
-    immediate: bool,
-    #[serde(skip_serializing_if = "Option::is_none")]
-    bytes: Option<u8>
-}
-
-#[derive(Debug, Serialize, Deserialize)]
-struct Flags {
-    Z: String,
-    N: String,
-    H: String,
-    C: String
-}
-
-#[derive(Debug, Serialize, Deserialize)]
-struct Instruction {
-    immediate: bool, 
-    operands: Vec<Operand>,
-    cycles: Vec<u8>,
-    bytes: u8,
-    mnemonic: String,
-    flags: Flags,
-    #[serde(skip_serializing_if = "Option::is_none")]
-    comment: Option<String>
-}
-
-#[derive(Debug, Serialize, Deserialize)]
-struct InstructionSet {
-    unprefixed: std::collections::HashMap<String, Instruction>,
-}
-
+mod instructions;
+use instructions::InstructionSet;
 fn main() -> Result<()>{
     
     let rom_path = Path::new("roms/Pokemon_Blue_USA.gb");
@@ -74,8 +41,20 @@ fn main() -> Result<()>{
         Err(e) => {eprintln!("Error reading rom: {}", e);}
     }
     */
-
-    let res_bytes = rom_reader::read_n_bytes_at_offset(&rom_file, 0x150, 10);
+    let pc = 0x150;
+    let mut instruction_bytes_count = 1;
+    let res_bytes = rom_reader::read_byte_at_offset(&rom_file, pc);
+    match res_bytes {
+        Ok(byte) => 
+            {
+                let cur_inst = instruction_set.get_instruction(byte)?;
+                instruction_bytes_count = cur_inst.bytes;
+            }
+        Err(e) => {eprintln!("Error reading rom: {}", e);}
+    }
+    let res_bytes = rom_reader::read_n_bytes_at_offset(&rom_file, pc, instruction_bytes_count as usize)?;
+    println!("{:02X?}",res_bytes);
+    /*
     match res_bytes {
         Ok(bytes) =>
             {
@@ -83,12 +62,13 @@ fn main() -> Result<()>{
                 while (true)
                 {
                     let cur_inst = instruction_set.unprefixed.get(&format!("0x{:X}",bytes[i as usize])).unwrap();
-                    println!("0x{:x}: {}", i+0x150, cur_inst.mnemonic);
+                    println!("0x{:x}: {} {}", i+0x150, cur_inst.mnemonic, cur_inst.operands.iter().map(|op| op.name.as_str()).collect::<Vec<_>>().join(", "));
                     i += cur_inst.bytes as u16;
                     if (i >= 10) { break; }
                 }
             }
         Err(e) => {eprintln!("Error reading rom: {}", e);}
     }
+    */
     Ok(())
 }

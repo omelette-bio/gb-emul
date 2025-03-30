@@ -9,3 +9,8 @@ pub fn read_n_bytes_at_offset(mut file : &File, offset: u64, bytes_readen: usize
 
     Ok(buf)
 }
+
+pub fn read_byte_at_offset(mut file: &File, offset: u64) -> std::io::Result<u8>
+{
+    Ok(read_n_bytes_at_offset(file, offset, 1)?[0])
+}
