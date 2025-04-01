@@ -2,15 +2,16 @@ use std::fs::File;
 use std::io::Result;
 use std::path::Path;
 use byteorder::{ByteOrder, BigEndian, LittleEndian, ReadBytesExt};
-use serde::{Serialize, Deserialize};
 mod rom_reader;
 use std::io::Read;
-use std::fmt::LowerHex;
 mod instructions;
 use instructions::InstructionSet;
+mod context;
+
+
 fn main() -> Result<()>{
     
-    let rom_path = Path::new("roms/Pokemon_Blue_USA.gb");
+    let rom_path = Path::new("roms/Pokemon_Version_Bleue_F.gb");
     let instr_path = Path::new("Opcodes.json");
     let rom_file = File::open(rom_path)?;
     let mut instr_file = File::open(instr_path)?;
@@ -19,8 +20,43 @@ fn main() -> Result<()>{
     instr_file.read_to_string(&mut contents)?;
 
     let instruction_set: InstructionSet = serde_json::from_str(&contents)?;
-    //println!("{:?}", instruction_set.unprefixed.get("0x00"));
+    
+    let mut c = context::Context::init();
+    println!("{:b}", c.read_a_register());
 
+    let pc = 0x150;
+    c.add_pc(0x150);
+    let mut instr_byte_count = 1;
+    let res_bytes = rom_reader::read_byte_at_offset(&rom_file, pc);
+    match res_bytes {
+        Ok(byte) =>
+            {
+                let cur_inst = instruction_set.get_instruction(byte)?;
+                instr_byte_count = cur_inst.bytes;
+            }
+        Err(e) => {eprintln!("Error reading rom: {}", e);}
+    }
+    let res_bytes = rom_reader::read_n_bytes_at_offset(&rom_file, pc, instr_byte_count as usize)?;
+    let instr = instruction_set.get_instruction(res_bytes[0])?;
+    instr.interpret(&mut c, &res_bytes);
+    println!("{:02X?}",res_bytes);
+
+    println!("{:b}", c.read_af_register());
+
+    let res_bytes = rom_reader::read_byte_at_offset(&rom_file, c.get_pc() as u64 );
+    match res_bytes {
+        Ok(byte) =>
+            {
+                let cur_inst = instruction_set.get_instruction(byte)?;
+                instr_byte_count = cur_inst.bytes;
+            }
+        Err(e) => {eprintln!("Error reading rom: {}", e);}
+    }
+    let res_bytes = rom_reader::read_n_bytes_at_offset(&rom_file, c.get_pc() as u64, instr_byte_count as usize)?;
+    let instr = instruction_set.get_instruction(res_bytes[0])?;
+    instr.interpret(&mut c, &res_bytes);
+
+    //println!("{:?}", instruction_set.unprefixed.get("0x00"));
     // 100-103 : nop puis jump 0x150 donc 00 C3 50 01 
     // 104-133 : logo nintendo encode
     // 134-143 : titre du jeu
@@ -41,6 +77,7 @@ fn main() -> Result<()>{
         Err(e) => {eprintln!("Error reading rom: {}", e);}
     }
     */
+    /*
     let pc = 0x150;
     let mut instruction_bytes_count = 1;
     let res_bytes = rom_reader::read_byte_at_offset(&rom_file, pc);
@@ -54,6 +91,9 @@ fn main() -> Result<()>{
     }
     let res_bytes = rom_reader::read_n_bytes_at_offset(&rom_file, pc, instruction_bytes_count as usize)?;
     println!("{:02X?}",res_bytes);
+    */
+
+        
     /*
     match res_bytes {
         Ok(bytes) =>

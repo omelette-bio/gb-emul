@@ -1,6 +1,7 @@
 use serde::{Serialize, Deserialize};
 use std::io::ErrorKind;
 use std::io::Error;
+use crate::context::Context;
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct Operand {
@@ -49,3 +50,31 @@ impl InstructionSet
             )).cloned()
     }
 }
+
+impl Instruction
+{
+    pub fn interpret(&self, c: &mut Context, bytes: &Vec<u8>)
+    {
+        match self.mnemonic.as_str()
+        {
+            "CP" => 
+                {
+                    let val = match self.operands[1].name.as_str()
+                        {
+                            "n8" => bytes[1],
+                            _ => 0,
+                        };
+                    let res: i16 = val as i16 - c.read_a_register() as i16;
+                    let mut af = c.read_af_register();
+                    af |= ((res != 0) as u16) << 6;
+                    af |= 1 << 5;
+                    af |= ((res < 0) as u16) << 4;
+                    c.write_af_register(af);
+                }
+            _ => println!("c'est autre chose ! {} {}", self.mnemonic, self.operands.iter().map(|op| op.name.as_str()).collect::<Vec<_>>().join(", ")),
+
+        }
+        c.add_pc(bytes.len() as u16);
+    }
+}
+
