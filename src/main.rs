@@ -1,60 +1,81 @@
 use std::fs::File;
 use std::io::Result;
 use std::path::Path;
-use byteorder::{ByteOrder, BigEndian, LittleEndian, ReadBytesExt};
+//use byteorder::{ByteOrder, BigEndian, LittleEndian, ReadBytesExt};
 mod rom_reader;
 use std::io::Read;
+
+use instructions::interpret;
 mod instructions;
-use instructions::InstructionSet;
+// use instructions::InstructionSet;
 mod context;
 
 
 fn main() -> Result<()>{
     
-    let rom_path = Path::new("roms/Pokemon_Version_Bleue_F.gb");
-    let instr_path = Path::new("Opcodes.json");
+    let rom_path = Path::new("roms\\Pokemon_Version_Bleue_F.gb");
+    // let instr_path = Path::new("Opcodes.json");
     let rom_file = File::open(rom_path)?;
-    let mut instr_file = File::open(instr_path)?;
+    // let mut instr_file = File::open(instr_path)?;
 
-    let mut contents = String::new();
-    instr_file.read_to_string(&mut contents)?;
+    // let mut contents = String::new();
+    // instr_file.read_to_string(&mut contents)?;
 
-    let instruction_set: InstructionSet = serde_json::from_str(&contents)?;
+    // let instruction_set: InstructionSet = serde_json::from_str(&contents)?;
     
-    let mut c = context::Context::init();
-    println!("{:b}", c.read_a_register());
+    let mut c = context::Context::init(rom_file);
+    
+    // let t = 1;
+    // println!("{:b}", t << 6);
 
-    let pc = 0x150;
-    c.add_pc(0x150);
-    let mut instr_byte_count = 1;
-    let res_bytes = rom_reader::read_byte_at_offset(&rom_file, pc);
-    match res_bytes {
-        Ok(byte) =>
-            {
-                let cur_inst = instruction_set.get_instruction(byte)?;
-                instr_byte_count = cur_inst.bytes;
-            }
-        Err(e) => {eprintln!("Error reading rom: {}", e);}
+    c.add_pc(0x100);
+
+    let mut x = 0;
+    while x<10
+    {
+        println!("{:x}", c.get_pc());
+        let bytes = rom_reader::read_byte_at_offset(c.get_rom_file(), c.get_pc() as u64)?;
+        _ = interpret(&mut c, bytes);
+        println!("af: {:b}", c.read_af_register());
+        // println!("flags : {:b}", c.read_flags_register());
+        // println!("bc : {:b}", c.read_bc_register());
+        x+=1;
     }
-    let res_bytes = rom_reader::read_n_bytes_at_offset(&rom_file, pc, instr_byte_count as usize)?;
-    let instr = instruction_set.get_instruction(res_bytes[0])?;
-    instr.interpret(&mut c, &res_bytes);
-    println!("{:02X?}",res_bytes);
+    // let bytes: u8 = rom_reader::read_byte_at_offset(c.get_rom_file(), c.get_pc() as u64)?;
+    // _ = interpret(&mut c, bytes);
+    
+    // println!("{:x}", c.get_pc());
+    // let pc = 0x150;
+    // c.add_pc(0x150);
+    // let mut instr_byte_count = 1;
+    // let res_bytes = rom_reader::read_byte_at_offset(&rom_file, pc);
+    // match res_bytes {
+    //     Ok(byte) =>
+    //         {
+    //             let cur_inst = instruction_set.get_instruction(byte)?;
+    //             instr_byte_count = cur_inst.bytes;
+    //         }
+    //     Err(e) => {eprintln!("Error reading rom: {}", e);}
+    // }
+    // let res_bytes = rom_reader::read_n_bytes_at_offset(&rom_file, pc, instr_byte_count as usize)?;
+    // let instr = instruction_set.get_instruction(res_bytes[0])?;
+    // instr.interpret(&mut c, &res_bytes);
+    // println!("{:02X?}",res_bytes);
 
-    println!("{:b}", c.read_af_register());
+    // println!("{:b}", c.read_af_register());
 
-    let res_bytes = rom_reader::read_byte_at_offset(&rom_file, c.get_pc() as u64 );
-    match res_bytes {
-        Ok(byte) =>
-            {
-                let cur_inst = instruction_set.get_instruction(byte)?;
-                instr_byte_count = cur_inst.bytes;
-            }
-        Err(e) => {eprintln!("Error reading rom: {}", e);}
-    }
-    let res_bytes = rom_reader::read_n_bytes_at_offset(&rom_file, c.get_pc() as u64, instr_byte_count as usize)?;
-    let instr = instruction_set.get_instruction(res_bytes[0])?;
-    instr.interpret(&mut c, &res_bytes);
+    // let res_bytes = rom_reader::read_byte_at_offset(&rom_file, c.get_pc() as u64 );
+    // match res_bytes {
+    //     Ok(byte) =>
+    //         {
+    //             let cur_inst = instruction_set.get_instruction(byte)?;
+    //             instr_byte_count = cur_inst.bytes;
+    //         }
+    //     Err(e) => {eprintln!("Error reading rom: {}", e);}
+    // }
+    // let res_bytes = rom_reader::read_n_bytes_at_offset(&rom_file, c.get_pc() as u64, instr_byte_count as usize)?;
+    // let instr = instruction_set.get_instruction(res_bytes[0])?;
+    // instr.interpret(&mut c, &res_bytes);
 
     //println!("{:?}", instruction_set.unprefixed.get("0x00"));
     // 100-103 : nop puis jump 0x150 donc 00 C3 50 01 
