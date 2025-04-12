@@ -31,7 +31,7 @@ fn main() -> Result<()>{
     c.add_pc(0x100);
 
     let mut x = 0;
-    while x<10
+    loop
     {
         println!("{:x}", c.get_pc());
         let bytes = rom_reader::read_byte_at_offset(c.get_rom_file(), c.get_pc() as u64)?;

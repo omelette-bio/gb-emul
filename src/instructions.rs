@@ -1,5 +1,5 @@
 use crate::{context::Context, rom_reader};
-use byteorder::{BigEndian, ByteOrder, LittleEndian, ReadBytesExt};
+use byteorder::{BigEndian, ByteOrder, LittleEndian, ReadBytesExt, WriteBytesExt};
 
 pub fn interpret(c: &mut Context, opcode: u8) -> Result<(), ()> {
     let mut bytes_count = 1;
@@ -50,7 +50,7 @@ pub fn interpret(c: &mut Context, opcode: u8) -> Result<(), ()> {
                 .expect("could not read bytes");
             //println!("{:x?}", bytes);
             println!("{:x}, opcode : {:x}, writing {} in A", c.get_pc(), opcode, bytes[1]);
-            c.write_af_register((c.read_af_register() & 0x00FF) | (bytes[1] as u16) << 4);
+            c.write_af_register((c.read_af_register() & 0x00FF) | (bytes[1] as u16) << 8);
         },
         0xAF =>
         // XOR A,A
@@ -76,7 +76,29 @@ pub fn interpret(c: &mut Context, opcode: u8) -> Result<(), ()> {
             }
             return Ok(());
         },
+        0xCD =>
+        // CALL n16
+        {
+            // push current pc onto the stack
+            // jump to n16 adress
+            // execution then when RET instruction called, return to previous pc
+
+            let mut bytes: Vec<u8> = Vec::new();
+            bytes.write_u16::<LittleEndian>(c.get_pc()).expect("error in parsing pc register");
+            println!("{:x} : {:x?}", c.get_pc(), bytes);
+            // c.write_in_memory(1, , );
+            panic!("feur");
+        },
         0xCF => todo!(),
+        0xE0 =>
+        // LDH [a8], A
+        {
+            bytes_count = 2;
+            let bytes = rom_reader::read_n_bytes_at_offset(c.get_rom_file(), c.get_pc() as u64, 3)
+                .expect("could not read bytes");
+            c.write_in_memory(1, vec!(c.read_a_register()),0xFF00 | bytes[1] as u16);
+            println!("{:x}, opcode: {:x}, writing at adress ram[{:x}] the value in A : {}", c.get_pc(), opcode, 0xFF00 | bytes[1] as u16, c.read_a_register());
+        },
         0xEA => 
         // LD [a16], A
         {
@@ -86,6 +108,7 @@ pub fn interpret(c: &mut Context, opcode: u8) -> Result<(), ()> {
             c.write_in_memory(1, vec!(c.read_a_register()), LittleEndian::read_u16(&bytes[1..=2]));
             println!("{:x}, opcode: {:x}, writing at adress ram[{:x}] the value in A : {}", c.get_pc(), opcode, LittleEndian::read_u16(&bytes[1..=2]), c.read_a_register());
         },
+        0xF3 => (), // je sais pas ce que c'est, je check plus tard
         0xFE => {
             bytes_count = 2;
             let bytes = rom_reader::read_n_bytes_at_offset(c.get_rom_file(), c.get_pc() as u64, 2)
@@ -98,7 +121,7 @@ pub fn interpret(c: &mut Context, opcode: u8) -> Result<(), ()> {
             af |= ((res < 0) as u16) << 4;
             c.write_af_register(af);
         }
-        _ => println!("Missing OpCode : {:x}", opcode),
+        _ => panic!("Missing OpCode : {:x}", opcode),
     }
     c.add_pc(bytes_count as u16);
     Ok(())

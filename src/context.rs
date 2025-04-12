@@ -14,7 +14,7 @@ pub struct Context
 
 impl Context
 {
-    pub fn init(rom_file: File) -> Self { Context {af: 0, bc: 0, de: 0, hl: 0, sp: 0, pc: 0, rom_path: rom_file, ram: [0; 65_536]} }
+    pub fn init(rom_file: File) -> Self { Context {af: 0, bc: 0, de: 0, hl: 0, sp: 0xDFFF, pc: 0, rom_path: rom_file, ram: [0; 65_536]} }
 
     pub fn read_af_register(&self) -> u16 { self.af }
 
