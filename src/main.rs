@@ -13,7 +13,7 @@ mod context;
 
 fn main() -> Result<()>{
     
-    let rom_path = Path::new("roms\\Pokemon_Version_Bleue_F.gb");
+    let rom_path = Path::new("roms/Pokemon_Version_Bleue_F.gb");
     // let instr_path = Path::new("Opcodes.json");
     let rom_file = File::open(rom_path)?;
     // let mut instr_file = File::open(instr_path)?;
@@ -31,16 +31,22 @@ fn main() -> Result<()>{
     c.add_pc(0x100);
 
     let mut x = 0;
-    loop
+    while x<30
     {
-        println!("{:x}", c.get_pc());
+        println!("{} : {:x}", x, c.get_pc());
         let bytes = rom_reader::read_byte_at_offset(c.get_rom_file(), c.get_pc() as u64)?;
         _ = interpret(&mut c, bytes);
-        println!("af: {:b}", c.read_af_register());
-        // println!("flags : {:b}", c.read_flags_register());
-        // println!("bc : {:b}", c.read_bc_register());
+        c.print_state();
+        
         x+=1;
     }
+    c.print_stack();
+
+
+
+
+
+
     // let bytes: u8 = rom_reader::read_byte_at_offset(c.get_rom_file(), c.get_pc() as u64)?;
     // _ = interpret(&mut c, bytes);
     
